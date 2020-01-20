@@ -1,3 +1,7 @@
+//this file is to keep of all the URLs and their shortened forms. we pass the URL data to urls_index.ejs.
+
+//this file contains an object called urlDatabase, which we use to track all the URLs and their shortened forms. this is the data we eant to show on the URLs page. therefore we need to pass along the urlDatabase to the template.
+
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -32,4 +36,10 @@ app.get("/set", (req, res) => {
 app.get("/fetch", (req, res) => {
   res.send(`a = ${a}`);
 });
+
+app.get("/urls", (req, res) => {
+  let templateVars = { urls: urlDatabase };
+  res.render("urls_index", templateVars);
+});
+
 
