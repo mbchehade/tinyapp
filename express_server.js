@@ -1,11 +1,10 @@
-//this file is to keep of all the URLs and their shortened forms. we pass the URL data to urls_index.ejs.
-
-//this file contains an object called urlDatabase, which we use to track all the URLs and their shortened forms. this is the data we eant to show on the URLs page. therefore we need to pass along the urlDatabase to the template.
 const express = require("express");
+const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080; // default port 8080
 
-app.set("view engine", "ejs");//This tells the Express app to use EJS as its templating engine so view engine is the header and ejs is the value;
+app.set("view engine", "ejs");
+app.use(cookieParser());
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -44,18 +43,19 @@ app.get("/fetch", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
+  let templateVars = { urls: urlDatabase, username: req.cookies['username'] };
   console.log("templateVars", templateVars)
   res.render("urls_index", templateVars);
 }); // this route will render the urlDatabase and show it on the page from the template on urlindex file
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let templateVars = { urls: urlDatabase, username: req.cookies['username'] };
+  res.render("urls_new", templateVars);
 }); // this goes to the new path and render template in urlnew.
 
 
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], username: req.cookies['username'] };
   res.render("urls_show", templateVars);
 });
 
@@ -83,9 +83,18 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(`http://${longURL}`);
 });
 
-
-
 function generateRandomString() {
   const length = 6;
       return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
     }
+
+  app.post('/login', (req, res) => {
+    res.cookie("username", req.body.username)
+    res.redirect("/urls")
+  });
+
+  app.post('/logout', (req, res) => {
+    res.clearCookie('username', req.body.username)
+    res.redirect('/urls')
+  })
+
