@@ -131,13 +131,25 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) =>{
-  delete urlDatabase[req.params.shortURL];
+  if(!req.cookies['user_id']){
+    res.send('This is not your URL!');
+  } else if (req.cookies['user_id'] !== urlDatabase[req.params.shortURL]['userID']){
+    res.send('This is not your URL!');
+  }else{
+    delete urlDatabase[req.params.shortURL];
+  }
   res.redirect("/urls");
 });
 
 app.post("/urls/:shortURL", (req, res) => {
+  if(!req.cookies['user_id']){
+    res.send('Sorry! You can only Edit your own URLs')
+  }else if (req.cookies['user_id'] !== urlDatabase[req.params.shortURL]['user_id']){
+    res.send('Sorry! You can only Edit your own URLs')
+  }else{
   urlDatabase[req.params.shortURL] = { 
     longURL: req.body.longURL
+  }
   }
   res.redirect(`/urls/`);
 });
