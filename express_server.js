@@ -10,10 +10,16 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
-//this is an object called urlDatabase which has 2 properties which are keys and values. the keys are short urls and the values are long urls.
+//===================== DATABASE ===========================
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: { 
+    longURL: "https://www.tsn.ca", 
+    userID: "aJ48lW" 
+  },
+  i3BoGr: { 
+    longURL: "https://www.google.ca", 
+    userID: "aJ48lW" 
+  }
 };
 
 const users = {
@@ -28,7 +34,7 @@ const users = {
     password: "dishwasher-funk"
   }
 };
-
+//====================== FUNCTIONS ==================================
 function lookUpEmail(email) {
   // Only change code below this line
   for (let id in users) {
@@ -38,28 +44,40 @@ function lookUpEmail(email) {
     }
   }
   return false;
-  // return email
 }
 
-function isRegistered(email){
-  for(let user in users){
-    if(users[user]['email'] === email){
+function isRegistered(email) {
+  for (let user in users) {
+    if (users[user]['email'] === email) {
+      
       return true;
     }
   }
   return false;
 }
 
+const urlsForUser = function (id, urlDataBase) {
+  const results = {};
+  for (let urls in urlDataBase) {
+    if (urlDataBase[urls]['userID'] === id) {
+      results[urls] = urlDataBase[urls];
+    }
+  }
+  return results;
+}
+
+//==========================================================================
+
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);// this is to get the server listening on a port.
+  console.log(`Example app listening on port ${PORT}!`);
 });
 
 app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase); // this function is a GET request to get the object data in a json package. json package is used to trasmit data between server and web application.
+  res.json(urlDatabase); 
 });
 
 app.get("/hello", (req, res) => {
@@ -76,26 +94,39 @@ app.get("/fetch", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const userId = req.cookies['user_id']
-  let templateVars = { 
-    urls: urlDatabase, 
-    user: users[userId]
-   };
+    const userID = req.cookies['user_id'];
+    let templateVars = {
+      urls: urlsForUser(userID, urlDatabase),
+      user: users[userID]
+    };
+  console.log(userID, urlDatabase)
   console.log("templateVars", templateVars);
   res.render("urls_index", templateVars);
+
 }); // this route will render the urlDatabase and show it on the page from the template on urlindex file
 
 app.get("/urls/new", (req, res) => {
-  let templateVars = { 
-    urls: urlDatabase, 
-    user: users[req.cookies['user_id']] 
-  };
-  res.render("urls_new", templateVars);
-}); // this goes to the new path and render template in urlnew.
+  if (!req.cookies['user_id']){
+    res.redirect('/login')
+}else if (isRegistered(users[req.cookies['user_id']]['email'])) {
+    let templateVars = {
+      urls: urlDatabase,
+      user: users[req.cookies['user_id']]
+    };
+    // res.redirect("/urls/new");
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
+  }
+}); 
 
 
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL], userId: req.cookies['user_id'] };
+  let templateVars = {
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL],
+    user: users[req.cookies['user_id']]
+  };
   res.render("urls_show", templateVars);
 });
 
@@ -105,15 +136,20 @@ app.post("/urls/:shortURL/delete", (req, res) =>{
 });
 
 app.post("/urls/:shortURL", (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.longURL;
+  urlDatabase[req.params.shortURL] = { 
+    longURL: req.body.longURL
+  }
   res.redirect(`/urls/`);
 });
 
 app.post("/urls", (req, res) => {
   // console.log(req.body);
-  const str = generateRandomString();
-  urlDatabase[str] = (req.body)["longURL"];
-  res.redirect(`/urls/${str}`);
+  const creatingShortUrls = generateRandomString();
+  urlDatabase[creatingShortUrls] = {
+    userID: req.cookies['user_id'],
+    longURL: req.body.longURL
+  }
+  res.redirect(`/urls/${creatingShortUrls}`);
 });
 
 app.get("/u/:shortURL", (req, res) => {
@@ -127,40 +163,39 @@ function generateRandomString() {
 }
 
 app.post('/login', (req, res) => {
-  if(!isRegistered(req.body.email)){
-    res.status(403)
-    res.redirect("/register")
-  }else{
-    let userId = "";
-    for (let userRandomID in users) {
-      if (users[userRandomID]['email'] === req.body.email) {
-        userId = userRandomID;
-      }
-  }
-  
-    if (req.body.password !== users[userId]['password']) {
+  if (!isRegistered(req.body.email)) {
     res.status(403);
-    res.redirect("/login")
-  }else {
-    
-    res.cookie("user_id", userId);
-    res.redirect("/urls");
+    res.redirect("/register");
+  } else {
+    let userID = "";
+    for (let userRandomID in users) { //for loop that finds userID from the email.
+      if (users[userRandomID]['email'] === req.body.email) {
+        userID = userRandomID;
+      }
     }
-   }
+  
+    if (req.body.password !== users[userID]['password']) {
+      res.status(403);
+      res.redirect("/login");
+    } else {
+    
+      res.cookie("user_id", userID);
+      res.redirect("/urls/");
+    }
+  }
   
 
 });
 
 app.post('/logout', (req, res) => {
-  res.clearCookie("user_id", req.body.userId);
-  res.redirect('/urls');
+  res.clearCookie("user_id", req.body.userID);
+  res.redirect('/urls/');
 });
 
 app.get('/register', (req, res) => {
-  let templateVars = { 
-    urls: urlDatabase, 
-    // userId: req.cookies['user_id'],
-    user: users[req.cookies['user_id']] 
+  let templateVars = {
+    urls: urlDatabase,
+    user: users[req.cookies['user_id']]
   };
   res.render("registration", templateVars);
 });
@@ -190,10 +225,10 @@ app.post('/register', (req, res) => {
 app.get('/login', (req, res) => {
   let templateVars = {
     urls: urlDatabase,
-    // userId: req.cookies['user_id'],
+    // userID: req.cookies['user_id'],
     user: users[req.cookies['user_id']]
   };
-  res.render('login', templateVars)
+  res.render('login', templateVars);
 });
 
 //USER'S Object: to store our users data.
