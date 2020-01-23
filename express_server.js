@@ -1,6 +1,9 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const app = express();
+const bcrypt = require('bcrypt');
+const password = "purple-monkey-dinosaur"; // found in the req.params object
+const hashedPassword = bcrypt.hashSync(password, 10);
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
@@ -35,6 +38,13 @@ const users = {
   }
 };
 //====================== FUNCTIONS ==================================
+function hashed(password){
+  const hash = bcrypt.hashSync(password, 10)
+  console.log(password, hash)
+  return hash;
+}
+
+
 function lookUpEmail(email) {
   // Only change code below this line
   for (let id in users) {
@@ -185,12 +195,10 @@ app.post('/login', (req, res) => {
         userID = userRandomID;
       }
     }
-  
-    if (req.body.password !== users[userID]['password']) {
+    if (! bcrypt.compareSync(req.body.password, users[userID]['password'])) {
       res.status(403);
       res.redirect("/login");
     } else {
-    
       res.cookie("user_id", userID);
       res.redirect("/urls/");
     }
@@ -225,7 +233,7 @@ app.post('/register', (req, res) => {
     users[createRandomID] = {
       id: createRandomID,
       email: req.body.email,
-      password: req.body.password//
+      password: hashed(req.body.password)//
     };
     // res.cookie('user_id', users[createRandomID]['id']);
     res.cookie('user_id', createRandomID);
@@ -235,6 +243,9 @@ app.post('/register', (req, res) => {
 });
 
 app.get('/login', (req, res) => {
+  
+  
+  
   let templateVars = {
     urls: urlDatabase,
     // userID: req.cookies['user_id'],
