@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const password = "purple-monkey-dinosaur"; // found in the req.params object
 const hashedPassword = bcrypt.hashSync(password, 10);
 const cookieSession = require('cookie-session');
-const getUserByEmail = require('./helpers')
+const { getUserByEmail } = require('./helpers');
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
@@ -50,11 +50,17 @@ const users = {
   }
 };
 //====================== FUNCTIONS ==================================
-function hashed(password) {
+const generateRandomString = function() {
+  const length = 6;
+  return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
+};
+
+
+const hashed = function(password) {
   const hash = bcrypt.hashSync(password, 10);
   console.log(password, hash);
   return hash;
-}
+};
 
 
 // function getUserByEmail(email, dataBase) {
@@ -68,7 +74,7 @@ function hashed(password) {
 //   return false;
 // }
 
-function isRegistered(email) {
+const isRegistered = function(email) {
   for (let user in users) {
     if (users[user]['email'] === email) {
       
@@ -76,7 +82,7 @@ function isRegistered(email) {
     }
   }
   return false;
-}
+};
 
 const urlsForUser = function(id, urlDataBase) {
   const results = {};
@@ -169,10 +175,10 @@ app.post("/urls/:shortURL/delete", (req, res) =>{
 app.post("/urls/:shortURL", (req, res) => {
   if (!req.session.user_id) {
     res.send('Sorry! You have to login');
-    console.log('cookie not being found')
+    console.log('cookie not being found');
   } else if (req.session.user_id !== urlDatabase[req.params.shortURL]['userID']) {
     res.send('Sorry! You can only Edit your own URLs');
-    console.log('researching for cookie here')
+    console.log('researching for cookie here');
   } else {
     urlDatabase[req.params.shortURL]['longURL'] = req.body.longURL;
 
@@ -195,10 +201,6 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(`http://${longURL}`);
 });
 
-function generateRandomString() {
-  const length = 6;
-  return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
-}
 
 app.post('/login', (req, res) => {
   if (!isRegistered(req.body.email)) {
