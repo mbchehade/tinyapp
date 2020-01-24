@@ -4,10 +4,11 @@ function getUserByEmail(email, dataBase) {
     dataBase = dataBase[user];
     if (email === dataBase['email']) {
       return user;
+    }else if(email !== dataBase['email']){
+      return undefined;
     }
-  }
-  return false;
+}
 }
 
 
-module.exports = getUserByEmail;
+module.exports = { getUserByEmail };
