@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const password = "purple-monkey-dinosaur"; // found in the req.params object
 const hashedPassword = bcrypt.hashSync(password, 10);
 const cookieSession = require('cookie-session');
+const getUserByEmail = require('./helpers')
 const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
@@ -56,16 +57,16 @@ function hashed(password) {
 }
 
 
-function lookUpEmail(email) {
-  // Only change code below this line
-  for (let id in users) {
-    const userProfile = users[id];
-    if (email === userProfile['email']) {
-      return true;
-    }
-  }
-  return false;
-}
+// function getUserByEmail(email, dataBase) {
+//   // Only change code below this line
+//   for (let user in users) {
+//     dataBase = users[user];
+//     if (email === dataBase['email']) {
+//       return user;
+//     }
+//   }
+//   return false;
+// }
 
 function isRegistered(email) {
   for (let user in users) {
@@ -224,8 +225,7 @@ app.post('/login', (req, res) => {
 
 app.post('/logout', (req, res) => {
   req.session = null;
-  res.status(200)
-  res.redirect('/urls/');
+  res.status(200).redirect('/urls/');
 });
 
 app.get('/register', (req, res) => {
@@ -241,7 +241,7 @@ app.get('/register', (req, res) => {
 app.post('/register', (req, res) => {
   if (req.body.email === "" || req.body.password === "") {
     res.status(400).send('Email or password are missing');
-  } else if (lookUpEmail(req.body.email)) {
+  } else if (getUserByEmail(req.body.email)) {
     res.status(400);
   } else {
     //register the user
