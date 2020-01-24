@@ -13,9 +13,11 @@
     </div>
     <main style="margin: 0em;">
       <% if(user){ %> 
-        <label for="username">Logged In As: <%= user['email'] %></label>
         <form class="form-inline" action="/logout" method="POST">
-      <button type="submit" class="btn btn-primary">Logout</button>
+          <button type="submit" class="btn btn-primary">Logout</button>
+          <div name="myLogin" style="position: absolute; right: 100px; top: 16px;">
+            <label for="username">Logged In As: <%= user['email'] %></label>
+      </div>
       </form>
       <% } else{ %>
       <form class="form-inline" action="/login" method="POST">

@@ -18,8 +18,9 @@
 
 
   <main style="margin: 1em;">
-    <h3>Login:</h3>
-    <form class="form-inline" action="/login" method="POST">
+    <form action="/login" method="POST">
+      <div align='center' name="myLogin" style="position: relative; left: 20px; top: 20px;">
+        <h3>Login</h3>
       <div class="form-group mb-2">
         <label for="longURL">Email:</label>
         <input class="form-control" type="email" name="email" placeholder="Enter your Email..."
@@ -30,6 +31,7 @@
         <input class="form-control" type="password" name="password" placeholder="Enter Your Password"
           style="width: 300px; margin: 1em">
         <button type="submit" class="btn btn-primary">Login</button>
+      </div>
       </div>
     </form>
   </main>
