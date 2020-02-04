@@ -22,8 +22,6 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
-//to read from it: req.session.user_id;
-//
 
 //===================== DATABASE ===========================
 const urlDatabase = {
@@ -71,16 +69,15 @@ const hashed = function(password) {
 //       return user;
 //     }
 //   }
-//   return false;
+//   return false\
 // }
 
-const isRegistered = function(email) {
-  for (let user in users) {
-    if (users[user]['email'] === email) {
-      
-      return true;
-    }
+const isRegistered = function(userId) {
+  const user = users[userId];
+  if (user) {
+    return true;
   }
+
   return false;
 };
 
@@ -97,7 +94,7 @@ const urlsForUser = function(id, urlDataBase) {
 //==========================================================================
 
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/login")
 });
 
 app.listen(PORT, () => {
@@ -123,23 +120,23 @@ app.get("/fetch", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const userID = req.session.user_id;
+  console.log(userID)
   let templateVars = {
     urls: urlsForUser(userID, urlDatabase),
-    user: users[userID] // bii605:  {id: 'bii605'....}
+    user: users[userID] 
   };
-  // console.log('users1', users)
-  // console.log('USER ID AND URLSATABASE',userID, urlDatabase);
-  // console.log('function urls',urlsForUser(userID, urlDatabase))
-  // console.log("templateVars", templateVars);
-  // console.log('users2', users)
-  res.render("urls_index", templateVars);
+  if(!isRegistered(req.session.user_id)){
+  res.redirect("/login")
+  }else{
+    res.render("urls_index", templateVars);
+  }
 
 }); // this route will render the urlDatabase and show it on the page from the template on urlindex file
 
 app.get("/urls/new", (req, res) => {
-  if (!req.session.user_id) {
+  if (!isRegistered(req.session.user_id)) {
     res.redirect('/login');
-  } else if (isRegistered(users[req.session['user_id']]['email'])) {
+  } else if (isRegistered(req.session.user_id)) {
     let templateVars = {
       urls: urlDatabase,
       user: users[req.session['user_id']]
@@ -149,6 +146,7 @@ app.get("/urls/new", (req, res) => {
   } else {
     res.redirect("/login");
   }
+
 });
 
 
@@ -162,7 +160,7 @@ app.get("/urls/:shortURL", (req, res) => {
 });
 
 app.post("/urls/:shortURL/delete", (req, res) =>{
-  if (!req.session.user_id) {
+  if (!isRegistered(req.session.user_id)) {
     res.send('This is not your URL!');
   } else if (req.session.user_id !== urlDatabase[req.params.shortURL]['userID']) {
     res.send('This is not your URL!');
@@ -173,7 +171,7 @@ app.post("/urls/:shortURL/delete", (req, res) =>{
 });
 
 app.post("/urls/:shortURL", (req, res) => {
-  if (!req.session.user_id) {
+  if (!isRegistered(req.session.user_id)) {
     res.send('Sorry! You have to login');
     console.log('cookie not being found');
   } else if (req.session.user_id !== urlDatabase[req.params.shortURL]['userID']) {
@@ -198,12 +196,16 @@ app.post("/urls", (req, res) => {
 
 app.get("/u/:shortURL", (req, res) => {
   const longURL = urlDatabase[req.params.shortURL]['longURL'];
+  if (longURL.includes('http://') || longURL.includes('https://')){
+    res.redirect(`${longURL}`)
+  }
   res.redirect(`http://${longURL}`);
 });
 
 
+
 app.post('/login', (req, res) => {
-  if (!isRegistered(req.body.email)) {
+  if (!getUserByEmail(req.body.email)) {
     res.status(403);
     res.redirect("/register");
   } else {
