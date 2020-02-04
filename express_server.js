@@ -13,8 +13,6 @@ app.set("view engine", "ejs");
 app.use(cookieSession({
   name: 'session',
   keys: ["adafgasdgfjhsdafgsdgfliwuegfbhjsdbusdhvhsdvhjsdvhajsgfbcuawsngfuxo"],
-
-  // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 
@@ -60,18 +58,6 @@ const hashed = function(password) {
   return hash;
 };
 
-
-// function getUserByEmail(email, dataBase) {
-//   // Only change code below this line
-//   for (let user in users) {
-//     dataBase = users[user];
-//     if (email === dataBase['email']) {
-//       return user;
-//     }
-//   }
-//   return false\
-// }
-
 const isRegistered = function(userId) {
   const user = users[userId];
   if (user) {
@@ -105,18 +91,6 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
-app.get("/set", (req, res) => {
-  const a = 1;
-  res.send(`a = ${a}`);
-}); //it is a GET method which requests a representation of the specified resource. this only retrives data.
-
-app.get("/fetch", (req, res) => {
-  res.send(`a = ${a}`);
-});
 
 app.get("/urls", (req, res) => {
   const userID = req.session.user_id;
@@ -131,7 +105,7 @@ app.get("/urls", (req, res) => {
     res.render("urls_index", templateVars);
   }
 
-}); // this route will render the urlDatabase and show it on the page from the template on urlindex file
+});
 
 app.get("/urls/new", (req, res) => {
   if (!isRegistered(req.session.user_id)) {
@@ -210,7 +184,7 @@ app.post('/login', (req, res) => {
     res.redirect("/register");
   } else {
     let userID = "";
-    for (let userRandomID in users) { //for loop that finds userID from the email.
+    for (let userRandomID in users) { 
       if (users[userRandomID]['email'] === req.body.email) {
         userID = userRandomID;
       }
@@ -255,25 +229,17 @@ app.post('/register', (req, res) => {
       email: req.body.email,
       password: hashed(req.body.password)//
     };
-    // res.cookie('user_id', users[createRandomID]['id']);
     req.session.user_id = createRandomID;
-    req.session.email = req.body.email;
-    // req.session.email = users[createRandomID].email
-    // console.log(users);
+    req.session.email = req.body.email;  
     res.redirect('/urls');
   }
 });
 
-app.get('/login', (req, res) => {
-  
-  
-  
+app.get('/login', (req, res) => { 
   let templateVars = {
     urls: urlDatabase,
-    // userID: req.cookies['user_id'],
     user: users[req.session['user_id']]
   };
   res.render('login', templateVars);
 });
 
-//USER'S Object: to store our users data.
