@@ -1,37 +1,112 @@
-//this file is to keep of all the URLs and their shortened forms. we pass the URL data to urls_index.ejs.
-
-//this file contains an object called urlDatabase, which we use to track all the URLs and their shortened forms. this is the data we eant to show on the URLs page. therefore we need to pass along the urlDatabase to the template.
 const express = require("express");
 const app = express();
+const bcrypt = require('bcrypt');
+const password = "purple-monkey-dinosaur"; // found in the req.params object
+const hashedPassword = bcrypt.hashSync(password, 10);
+const cookieSession = require('cookie-session');
+const { getUserByEmail } = require('./helpers');
 const PORT = 8080; // default port 8080
 
-app.set("view engine", "ejs");//This tells the Express app to use EJS as its templating engine so view engine is the header and ejs is the value;
+app.set("view engine", "ejs");
+
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ["adafgasdgfjhsdafgsdgfliwuegfbhjsdbusdhvhsdvhjsdvhajsgfbcuawsngfuxo"],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
 
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
 
-//this is an object called urlDatabase which has 2 properties which are keys and values. the keys are short urls and the values are long urls.
+
+//===================== DATABASE ===========================
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
+  }
+};
+
+const users = {
+  "userRandomID": {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur"
+  },
+  "user2RandomID": {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk"
+  }
+};
+//====================== FUNCTIONS ==================================
+const generateRandomString = function() {
+  const length = 6;
+  return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
 };
 
 
+const hashed = function(password) {
+  const hash = bcrypt.hashSync(password, 10);
+  console.log(password, hash);
+  return hash;
+};
+
+
+// function getUserByEmail(email, dataBase) {
+//   // Only change code below this line
+//   for (let user in users) {
+//     dataBase = users[user];
+//     if (email === dataBase['email']) {
+//       return user;
+//     }
+//   }
+//   return false\
+// }
+
+const isRegistered = function(userId) {
+  const user = users[userId];
+  if (user) {
+    return true;
+  }
+
+  return false;
+};
+
+const urlsForUser = function(id, urlDataBase) {
+  const results = {};
+  for (let urls in urlDataBase) {
+    if (urlDataBase[urls]['userID'] === id) {
+      results[urls] = urlDataBase[urls];
+    }
+  }
+  return results;
+};
+
+//==========================================================================
+
 app.get("/", (req, res) => {
-  res.send("Hello!");
+  res.redirect("/login")
 });
 
 app.listen(PORT, () => {
-  console.log(`Example app listening on port ${PORT}!`);// this is to get the server listening on a port.
+  console.log(`Example app listening on port ${PORT}!`);
 });
 
 app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase); // this function is a GET request to get the object data in a json package. json package is used to trasmit data between server and web application.
+  res.json(urlDatabase);
 });
 
 app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n")
+  res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
 app.get("/set", (req, res) => {
@@ -44,48 +119,161 @@ app.get("/fetch", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  let templateVars = { urls: urlDatabase };
-  console.log("templateVars", templateVars)
-  res.render("urls_index", templateVars);
+  const userID = req.session.user_id;
+  console.log(userID)
+  let templateVars = {
+    urls: urlsForUser(userID, urlDatabase),
+    user: users[userID] 
+  };
+  if(!isRegistered(req.session.user_id)){
+  res.redirect("/login")
+  }else{
+    res.render("urls_index", templateVars);
+  }
+
 }); // this route will render the urlDatabase and show it on the page from the template on urlindex file
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
-}); // this goes to the new path and render template in urlnew.
+  if (!isRegistered(req.session.user_id)) {
+    res.redirect('/login');
+  } else if (isRegistered(req.session.user_id)) {
+    let templateVars = {
+      urls: urlDatabase,
+      user: users[req.session['user_id']]
+    };
+    // res.redirect("/urls/new");
+    res.render("urls_new", templateVars);
+  } else {
+    res.redirect("/login");
+  }
+
+});
 
 
 app.get("/urls/:shortURL", (req, res) => {
-  let templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  let templateVars = {
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL]['longURL'],
+    user: users[req.session['user_id']]
+  };
   res.render("urls_show", templateVars);
 });
 
 app.post("/urls/:shortURL/delete", (req, res) =>{
-  delete urlDatabase[req.params.shortURL]
-  res.redirect("/urls")
-})
+  if (!isRegistered(req.session.user_id)) {
+    res.send('This is not your URL!');
+  } else if (req.session.user_id !== urlDatabase[req.params.shortURL]['userID']) {
+    res.send('This is not your URL!');
+  } else {
+    delete urlDatabase[req.params.shortURL];
+  }
+  res.redirect("/urls");
+});
 
 app.post("/urls/:shortURL", (req, res) => {
-  console.log("marker")
-  console.log(req.body)
-  urlDatabase[req.params.shortURL] = req.body.longURL
+  if (!isRegistered(req.session.user_id)) {
+    res.send('Sorry! You have to login');
+    console.log('cookie not being found');
+  } else if (req.session.user_id !== urlDatabase[req.params.shortURL]['userID']) {
+    res.send('Sorry! You can only Edit your own URLs');
+    console.log('researching for cookie here');
+  } else {
+    urlDatabase[req.params.shortURL]['longURL'] = req.body.longURL;
+
+  }
   res.redirect(`/urls/`);
-})
+});
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);  
-  const str = generateRandomString()
-  urlDatabase[str] = (req.body)["longURL"];  
-  res.redirect(`/urls/${str}`)      
+  // console.log(req.body);
+  const creatingShortUrls = generateRandomString();
+  urlDatabase[creatingShortUrls] = {
+    userID: req.session.user_id,
+    longURL: req.body.longURL
+  };
+  res.redirect(`/urls/${creatingShortUrls}`);
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  const longURL = urlDatabase[req.params['shortURL']];
+  const longURL = urlDatabase[req.params.shortURL]['longURL'];
+  if (longURL.includes('http://') || longURL.includes('https://')){
+    res.redirect(`${longURL}`)
+  }
   res.redirect(`http://${longURL}`);
 });
 
 
 
-function generateRandomString() {
-  const length = 6;
-      return Math.round((Math.pow(36, length + 1) - Math.random() * Math.pow(36, length))).toString(36).slice(1);
+app.post('/login', (req, res) => {
+  if (!getUserByEmail(req.body.email)) {
+    res.status(403);
+    res.redirect("/register");
+  } else {
+    let userID = "";
+    for (let userRandomID in users) { //for loop that finds userID from the email.
+      if (users[userRandomID]['email'] === req.body.email) {
+        userID = userRandomID;
+      }
     }
+    if (! bcrypt.compareSync(req.body.password, users[userID]['password'])) {
+      res.status(403);
+      res.redirect("/login");
+    } else {
+      req.session.user_id = userID;
+      res.redirect("/urls/");
+    }
+  }
+  
+
+});
+
+app.post('/logout', (req, res) => {
+  req.session = null;
+  res.status(200).redirect('/urls/');
+});
+
+app.get('/register', (req, res) => {
+  let templateVars = {
+    urls: urlDatabase,
+    user: users[req.session['user_id']]
+  };
+  res.render("registration", templateVars);
+});
+
+  
+    
+app.post('/register', (req, res) => {
+  if (req.body.email === "" || req.body.password === "") {
+    res.status(400).send('Email or password are missing');
+  } else if (getUserByEmail(req.body.email)) {
+    res.status(400);
+  } else {
+    //register the user
+    const createRandomID = generateRandomString();
+    users[createRandomID] = {
+      id: createRandomID,
+      email: req.body.email,
+      password: hashed(req.body.password)//
+    };
+    // res.cookie('user_id', users[createRandomID]['id']);
+    req.session.user_id = createRandomID;
+    req.session.email = req.body.email;
+    // req.session.email = users[createRandomID].email
+    // console.log(users);
+    res.redirect('/urls');
+  }
+});
+
+app.get('/login', (req, res) => {
+  
+  
+  
+  let templateVars = {
+    urls: urlDatabase,
+    // userID: req.cookies['user_id'],
+    user: users[req.session['user_id']]
+  };
+  res.render('login', templateVars);
+});
+
+//USER'S Object: to store our users data.
