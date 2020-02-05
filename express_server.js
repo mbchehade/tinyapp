@@ -54,7 +54,6 @@ const generateRandomString = function() {
 
 const hashed = function(password) {
   const hash = bcrypt.hashSync(password, 10);
-  console.log(password, hash);
   return hash;
 };
 
@@ -94,7 +93,6 @@ app.get("/urls.json", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const userID = req.session.user_id;
-  console.log(userID)
   let templateVars = {
     urls: urlsForUser(userID, urlDatabase),
     user: users[userID] 
@@ -130,7 +128,13 @@ app.get("/urls/:shortURL", (req, res) => {
     longURL: urlDatabase[req.params.shortURL]['longURL'],
     user: users[req.session['user_id']]
   };
+  if(!isRegistered(req.session.user_id)){
+    res.send('This is not your URL!');
+  }else if(req.session.user_id !== urlDatabase[req.params.shortURL]['userID']){
+    res.send('This is not your URL!');
+  }else{
   res.render("urls_show", templateVars);
+  }
 });
 
 app.post("/urls/:shortURL/delete", (req, res) =>{
@@ -143,6 +147,7 @@ app.post("/urls/:shortURL/delete", (req, res) =>{
   }
   res.redirect("/urls");
 });
+
 
 app.post("/urls/:shortURL", (req, res) => {
   if (!isRegistered(req.session.user_id)) {
